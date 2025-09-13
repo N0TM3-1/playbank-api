@@ -208,3 +208,4 @@ __marimo__/
 
 # Code editors and IDEs
 .vscode/
+.idea/
