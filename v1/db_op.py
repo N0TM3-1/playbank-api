@@ -1,6 +1,7 @@
 import psycopg2
 import os
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -29,7 +30,22 @@ def init():
                         password text NOT NULL
                     )
                     ''')
-        conn.commit()
     except psycopg2.Error as e:
         conn.rollback()
-        print(e)
+        logging.exception('PSYCOPG2.ERROR') # TODO Fix this
+    else:
+        conn.commit()
+
+def add_user(username, password):
+    try:
+        cur.execute(
+            '''INSERT INTO users (username, password) VALUES (%s, %s)''',
+            (username, password)
+        )
+    except psycopg2.Error as e:
+        conn.rollback()
+        logging.exception('PSYCOPG2.ERROR') # TODO Fix this
+        return e
+    else:
+        conn.commit()
+        return True
