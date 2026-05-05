@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
+from email_validator import validate_email, EmailNotValidError
 import secrets, base64, bcrypt
 from . import db_op as db
+from . import error
 
 users = Blueprint('users', __name__, url_prefix='/users')
 
@@ -10,11 +12,19 @@ def gen_key(): # Generate API key
     db_key = bcrypt.hashpw(user_key.encode(), bcrypt.gensalt()) # Salt and hash the API key for storing
     return user_key, db_key
 
-def check_user(username, email): # TODO Setup email validation
+
+def check_user(username, email):
+    ### USERNAME VALIDATION ###
     if not username or not username.strip():
-        return False, jsonify({'error':'validation_error', 'message':'Username is required and can not be empty'}), 400
+        return False, error('validation_error', 'Username is required and can not be empty', 400)
     if ' ' in username:
-        return False, jsonify({'message':'Username must not contain spaces'}), 400
+        return False, error('validation_error', 'Username must not contain spaces', 400)
+    
+    ### EMAIL VALIDATION ###
+    try:
+        validate_email(email, check_deliverability=False)
+    except EmailNotValidError as e:
+        return False, error('validation_error', f'Invalid email: {email}', 400)
     return True
 
 @users.route('', methods=['POST'])
@@ -29,8 +39,8 @@ def create_user():
         if res==True:
             return jsonify({'api_key':f'{api_key}'}), 201
         elif res == 'unique_violation':
-            return jsonify({'error':'conflict', 'message':f'User {username} already exists'}), 409
+            return error('conflict', f'User {username} already exists', 409)
         else:
-            return jsonify({'error':'database_error', 'message':'Database operation failes'}), 500
+            return error('database_error', 'Database operation failed', 500)
     else:
-        return jsonify({'error':'bad_request', 'message':'Missing or invalid JSON'}), 400
+        return error('bad_request', 'Missing or invalid JSON', 400)

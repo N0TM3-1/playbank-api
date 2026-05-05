@@ -3,3 +3,4 @@ psycopg2-binary
 logging
 python-dotenv
 bcrypt
+email-validator
